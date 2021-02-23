@@ -30,21 +30,25 @@ import org.apache.logging.log4j.Logger;
 import com.samsungsds.analyst.code.util.IOAndFileUtils;
 
 @SuppressWarnings("serial")
-public class JarDownloadServlet  extends HttpServlet {
+public class JarDownloadServlet extends HttpServlet {
 	private static final Logger LOGGER = LogManager.getLogger(JarDownloadServlet.class);
-	
+
 	@Override
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		String url = request.getRequestURI();
-		
+
 		LOGGER.debug("Download URL : {}", url);
-		
+
 		String filename = url.substring(url.lastIndexOf("/") + 1);
-        
+
+		if (request.getParameter("name") != null && !request.getParameter("name").equals("")) {
+		    filename = request.getParameter("name");
+        }
+
         String headerKey = "Content-Disposition";
         String headerValue = String.format("attachment; filename=\"%s\"", filename);
         response.setHeader(headerKey, headerValue);
-        
+
         File jarFile = IOAndFileUtils.extractFileToTemp("/statics/" + filename);
         LOGGER.debug("File size : {}", jarFile.length());
 
@@ -54,7 +58,7 @@ public class JarDownloadServlet  extends HttpServlet {
 
 		// Declare response status code
 		response.setStatus(HttpServletResponse.SC_OK);
-		
+
 		// Write back response
 		try (OutputStream outStream = response.getOutputStream()) {
 			IOAndFileUtils.write(outStream, jarFile);
@@ -62,4 +66,3 @@ public class JarDownloadServlet  extends HttpServlet {
 	}
 
 }
-

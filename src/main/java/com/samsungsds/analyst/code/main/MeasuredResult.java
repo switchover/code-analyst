@@ -24,7 +24,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
+import com.google.gson.annotations.JsonAdapter;
 import com.samsungsds.analyst.code.api.Language;
 import com.samsungsds.analyst.code.checkstyle.CheckStyleResult;
 import com.samsungsds.analyst.code.ckmetrics.CkMetricsResult;
@@ -116,6 +118,8 @@ public class MeasuredResult implements Serializable, FileSkipChecker {
 
 	private IndividualMode individualMode;
 
+	private boolean debug = false;
+
 	@Expose
 	private String version = Version.DOCUMENT_VERSION;
 	@Expose
@@ -139,7 +143,8 @@ public class MeasuredResult implements Serializable, FileSkipChecker {
 	private int statements = 0;
 
 	@Expose
-	private List<String> filePathList = Collections.synchronizedList(new ArrayList<>());
+    @JsonAdapter(FilePathInfoAdapter.class)
+	private List<FilePathInfo> filePathList = Collections.synchronizedList(new ArrayList<>());
 
 	@Expose
 	private List<DuplicationResult> duplicationList = null;
@@ -191,8 +196,12 @@ public class MeasuredResult implements Serializable, FileSkipChecker {
 	private int findSecBugsRules = 0;
 	@Expose
 	private int sonarJSRules = 0;
+    @Expose
+    private int sonarCSharpRules = 0;
+    @Expose
+    private int sonarPythonRules = 0;
 
-	@Expose
+    @Expose
 	@SerializedName("sonarJavaList")
 	private List<SonarIssueResult> sonarIssueList = null;
 
@@ -440,30 +449,53 @@ public class MeasuredResult implements Serializable, FileSkipChecker {
 		webapp = cli.getWebapp();
 	}
 
+	public void setChangeSourceAndBinary(String source, String binary) {
+        this.source = source;
+        this.binary = binary;
+    }
+
+	public void setDebug(boolean debug) {
+	    this.debug = debug;
+    }
+
+    public boolean isDebug() {
+	    return debug;
+    }
+
 	public void changeSerializedName(CliParser cli) {
-		if (cli.getLanguageType() == Language.JAVASCRIPT) {
-			changeSerializedName("sonarIssueList", "sonarJSList");
-			changeSerializedName("sonarIssueCount", "sonarJSCount");
-			changeSerializedName("sonarIssueType", "sonarJSType");
-			changeSerializedName("topSonarIssueList", "topSonarJSList");
-		} else {	// Language.JAVA
-			if (cli.getIndividualMode().isSonarJava() && cli.getIndividualMode().isJavascript()) {
-				changeSerializedName("sonarIssueList", "sonarIssueList");
-				changeSerializedName("sonarIssueCount", "sonarIssueCount");
-				changeSerializedName("sonarIssueType", "sonarIssueType");
-				changeSerializedName("topSonarIssueList", "topSonarIssueList");
-			} else if (cli.getIndividualMode().isSonarJava()) {
-				changeSerializedName("sonarIssueList", "sonarJavaList");
-				changeSerializedName("sonarIssueCount", "sonarJavaCount");
-				changeSerializedName("sonarIssueType", "sonarJavaType");
-				changeSerializedName("topSonarIssueList", "topSonarJavaList");
-			} else if (cli.getIndividualMode().isJavascript()) {
-				changeSerializedName("sonarIssueList", "sonarJSList");
-				changeSerializedName("sonarIssueCount", "sonarJSCount");
-				changeSerializedName("sonarIssueType", "sonarJSType");
-				changeSerializedName("topSonarIssueList", "topSonarJSList");
-			}
-		}
+        if (cli.getLanguageType() == Language.JAVA) {
+            if (cli.getIndividualMode().isSonarJava() && cli.getIndividualMode().isJavascript()) {
+                changeSerializedName("sonarIssueList", "sonarIssueList");
+                changeSerializedName("sonarIssueCount", "sonarIssueCount");
+                changeSerializedName("sonarIssueType", "sonarIssueType");
+                changeSerializedName("topSonarIssueList", "topSonarIssueList");
+            } else if (cli.getIndividualMode().isSonarJava()) {
+                changeSerializedName("sonarIssueList", "sonarJavaList");
+                changeSerializedName("sonarIssueCount", "sonarJavaCount");
+                changeSerializedName("sonarIssueType", "sonarJavaType");
+                changeSerializedName("topSonarIssueList", "topSonarJavaList");
+            } else if (cli.getIndividualMode().isJavascript()) {
+                changeSerializedName("sonarIssueList", "sonarJSList");
+                changeSerializedName("sonarIssueCount", "sonarJSCount");
+                changeSerializedName("sonarIssueType", "sonarJSType");
+                changeSerializedName("topSonarIssueList", "topSonarJSList");
+            }
+        } else if (cli.getLanguageType() == Language.JAVASCRIPT) {
+            changeSerializedName("sonarIssueList", "sonarJSList");
+            changeSerializedName("sonarIssueCount", "sonarJSCount");
+            changeSerializedName("sonarIssueType", "sonarJSType");
+            changeSerializedName("topSonarIssueList", "topSonarJSList");
+        } else if (cli.getLanguageType() == Language.CSHARP) {
+            changeSerializedName("sonarIssueList", "sonarCSharpList");
+            changeSerializedName("sonarIssueCount", "sonarCSharpCount");
+            changeSerializedName("sonarIssueType", "sonarCSharpType");
+            changeSerializedName("topSonarIssueList", "topSonarCSharpList");
+        } else {    // Python
+            changeSerializedName("sonarIssueList", "sonarPythonList");
+            changeSerializedName("sonarIssueCount", "sonarPythonCount");
+            changeSerializedName("sonarIssueType", "sonarPythonType");
+            changeSerializedName("topSonarIssueList", "topSonarPythonList");
+        }
 	}
 
 	private void changeSerializedName(String fieldName, String newSerializedName) {
@@ -571,11 +603,13 @@ public class MeasuredResult implements Serializable, FileSkipChecker {
 	}
 
 	public List<String> getFilePathList() {
-		return filePathList;
+	    return filePathList.stream()
+            .map(file -> new String(file.getPath()))
+            .collect(Collectors.toList());
 	}
 
-	public void addFilePathList(String filePath) {
-		filePathList.add(filePath);
+	public void addFilePathList(String moduleName, String filePath) {
+		filePathList.add(new FilePathInfo(moduleName, filePath));
 	}
 
 	public int getDuplicatedBlocks() {
@@ -598,19 +632,20 @@ public class MeasuredResult implements Serializable, FileSkipChecker {
 		this.sonarIssueFilterSet = sonarIssueFilterSet;
 	}
 
-	public synchronized void addDuplicationResult(DuplicationResult result) {
+	public synchronized boolean addDuplicationResult(DuplicationResult result) {
 		String path = result.getPath();
-		String duplcatedPath = null;
+		String duplicatedPath = null;
 
 		if (DuplicationResult.DUPLICATED_FILE_SAME_MARK.equals(result.getDuplicatedPath())) {
-			addDuplicatedBlocks();
-			duplcatedPath = result.getPath();
+		    // 이 경우 addDuplicatedBlocks() 호출 이유 확인 필요
+			//addDuplicatedBlocks();
+			duplicatedPath = result.getPath();
 		} else {
-			duplcatedPath = result.getDuplicatedPath();
+			duplicatedPath = result.getDuplicatedPath();
 		}
 
-		if (haveToSkip(path) || haveToSkip(duplcatedPath)) {
-			return;
+		if (haveToSkip(path) || haveToSkip(duplicatedPath)) {
+			return false;
 		}
 
 		duplicationList.add(result);
@@ -625,19 +660,21 @@ public class MeasuredResult implements Serializable, FileSkipChecker {
 			duplicatedBlockData.put(path, duplicatedLineNumbers);
 		}
 
-		if (duplicatedBlockData.containsKey(duplcatedPath)) {
-			this.duplicatedLines += getAddedDuplicatedLines(result.getDuplicatedStartLine(), result.getDuplicatedEndLine(), duplicatedBlockData.get(duplcatedPath));
+		if (duplicatedBlockData.containsKey(duplicatedPath)) {
+			this.duplicatedLines += getAddedDuplicatedLines(result.getDuplicatedStartLine(), result.getDuplicatedEndLine(), duplicatedBlockData.get(duplicatedPath));
 		} else {
 			Set<Integer> duplicatedLineNumbers = new HashSet<>();
 
 			this.duplicatedLines += getAddedDuplicatedLines(result.getDuplicatedStartLine(), result.getDuplicatedEndLine(), duplicatedLineNumbers);
 
-			duplicatedBlockData.put(duplcatedPath, duplicatedLineNumbers);
+			duplicatedBlockData.put(duplicatedPath, duplicatedLineNumbers);
 		}
 
 		if (detailAnalysis) {
 			duplicationDetailAnalyst.add(result);
 		}
+
+		return true;
 	}
 
 	private int getAddedDuplicatedLines(int from, int to, Set<Integer> duplicatedLineNumbers) {
@@ -659,6 +696,8 @@ public class MeasuredResult implements Serializable, FileSkipChecker {
 	}
 
 	public boolean haveToSkip(String path, boolean addSrcPrefix, boolean withoutFilename) {
+	    path = path.replace("\\", "/");
+
 		String[] pathArray;
 
 		if (addSrcPrefix) {
@@ -953,7 +992,23 @@ public class MeasuredResult implements Serializable, FileSkipChecker {
 		this.sonarJSRules = sonarJSRules;
 	}
 
-	public String getWebapp() {
+    public int getSonarCSharpRules() {
+        return sonarCSharpRules;
+    }
+
+    public void setSonarCSharpRules(int sonarCSharpRules) {
+        this.sonarCSharpRules = sonarCSharpRules;
+    }
+
+    public int getSonarPythonRules() {
+        return sonarPythonRules;
+    }
+
+    public void setSonarPythonRules(int sonarPythonRules) {
+        this.sonarPythonRules = sonarPythonRules;
+    }
+
+    public String getWebapp() {
 		return webapp;
 	}
 
@@ -980,7 +1035,7 @@ public class MeasuredResult implements Serializable, FileSkipChecker {
 	public void addSonarIssueResult(SonarIssueResult sonarIssueResult) {
 		String ruleKey = sonarIssueResult.getRuleRepository() + ":" + sonarIssueResult.getRuleKey();
 		if (sonarIssueFilterSet.contains(ruleKey)) {
-			LOGGER.debug("SonarJava(JS) Rule exclude : {}", ruleKey);
+			LOGGER.debug("Sonar Rule exclude : {}", ruleKey);
 			return;
 		}
 		sonarIssueList.add(sonarIssueResult);
@@ -1008,7 +1063,11 @@ public class MeasuredResult implements Serializable, FileSkipChecker {
 
 	public String getSonarIssueTitle() {
 		if (languageType == Language.JAVASCRIPT) {
-			return "SonarJS";
+            return "SonarJS";
+        } else if (languageType == Language.CSHARP) {
+            return "SonarCSharp";
+        } else if (languageType == Language.PYTHON) {
+		    return "SonarPython";
 		} else {	// Language.JAVA
 			if (individualMode.isJavascript()) {
 				return "SonarIssue";
@@ -1182,7 +1241,16 @@ public class MeasuredResult implements Serializable, FileSkipChecker {
 	}
 
 	public void setCkMetricsResultList(List<CkMetricsResult> ckMetricsResultList) {
-		this.ckMetricsResultList = ckMetricsResultList;
+		//this.ckMetricsResultList = ckMetricsResultList;
+        this.ckMetricsResultList.clear();
+
+        for (CkMetricsResult result : ckMetricsResultList) {
+            if (haveToSkip(result.getFilePath())) {
+                continue;
+            }
+
+            this.ckMetricsResultList.add(result);
+        }
 	}
 
 	public List<CkMetricsResult> getCkMetricsResultList() {

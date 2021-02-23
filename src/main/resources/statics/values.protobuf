@@ -1,14 +1,65 @@
 
-3
-(sonar.authenticator.ignoreStartupFailurefalse(
-H
-sonar.editions.jsonUrl,https://update.sonarsource.org/editions.json(
-"
-sonar.less.file.suffixesless(
 6
-$sonar.javascript.jQueryObjectAliases
-$
- jQuery(
+%sonaranalyzer-cs.nuget.packageVersion8.6.1.17183(
+'
+sonar.cs.ignoreHeaderCommentstrue(
+/
+sonar.typescript.file.suffixes
+.ts
+.tsx(
+
+email.fromName	SonarQube(
+)
+sonar.python.xunit.skipDetailsfalse(
+'
+sonar.go.exclusions
+**/vendor/**(
+$
+sonar.forceAuthenticationfalse(
+!
+sonar.notifications.delay60(
+8
+sonaranalyzer-cs.ruleNamespaceSonarAnalyzer.CSharp(
+(
+sonar.cs.analyzeGeneratedCodefalse(
+
+email.smtp_port.secured25(
+C
+8sonar.builtInQualityProfiles.disableNotificationOnUpdatefalse(
+1
+sonar.css.file.suffixes
+.css
+.less
+.scss(
+0
+%sonar.organizations.createPersonalOrgfalse(
+j
+sonar.html.file.suffixesL
+.html
+.xhtml
+.cshtml
+.vbhtml
+.aspx
+.ascx
+.rhtml
+.erb
+.shtm
+.shtml(
+"
+sonar.cpd.cross_projectfalse(
+*
+ sonar.vbnet.ignoreHeaderCommentstrue(
+'
+sonar.leak.periodprevious_version(
+'
+sonar.auth.github.groupsSyncfalse(
+'
+sonar.scala.file.suffixes
+.scala(
++
+sonar.auth.github.loginStrategyUnique(
+@
+!sonaranalyzer-vbnet.ruleNamespaceSonarAnalyzer.VisualBasic(
 /
 %sonar.javascript.ignoreHeaderCommentstrue(
 6
@@ -17,24 +68,15 @@ $sonar.javascript.jQueryObjectAliases
 8sonar.dbcleaner.weeksBeforeKeepingOnlyOneSnapshotByMonth52(
 g
 sonar.lf.gravatarServerUrlGhttps://secure.gravatar.com/avatar/{EMAIL_MD5}.jpg?s={SIZE}&d=identicon(
-
-email.fromName	SonarQube(
-#
-sonar.sonarcloud.enabledfalse(
-B
-9sonar.dbcleaner.weeksBeforeKeepingOnlyAnalysesWithVersion104(
-#
-sonar.cpd.css.minimumTokens70(
--
-"sonar.telemetry.frequencyInSeconds21600(
-$
-sonar.forceAuthenticationfalse(
-!
-sonar.notifications.delay60(
+"
+sonar.findbugs.effortDefault(
 >
 5sonar.notifications.runningDelayBeforeReportingStatus600(
-"
-sonar.scss.file.suffixesscss(
+1
+sonar.jsp.file.suffixes
+.jsp
+.jspf
+.jspx(
 Ñ
 sonar.javascript.environments­
 amd
@@ -68,18 +110,80 @@ $
  worker
  wsh
  yui(
-
-email.smtp_port.secured25(
-'
-sonar.authenticator.downcasefalse(
 
 sonar.scm.disabledfalse(
-7
-sonar.web.file.suffixes.html,.xhtml,.rhtml,.shtml(
-C
-8sonar.builtInQualityProfiles.disableNotificationOnUpdatefalse(
+"
+sonar.auth.saml.enabledfalse(
+$
+sonar.vbnet.file.suffixes
+.vb(
++
+#sonar.technicalDebt.developmentCost30(
+$
+sonar.python.file.suffixes
+py(
+!
+sonar.cs.file.suffixes
+.cs(
+I
+&sonaranalyzer-vbnet.staticResourceNameSonarAnalyzer-7.15.0.8572.zip(
++
+sonar.java.file.suffixes
+.java
+.jav(
 %
-sonar.updatecenter.activatetrue(
+sonar.kotlin.file.suffixes
+.kt(
+@
+sonar.php.file.suffixes#
+php
+php3
+php4
+php5
+phtml
+inc(
+/
+sonar.xml.file.suffixes
+.xml
+.xsd
+.xsl(
+8
+/sonar.dbcleaner.weeksBeforeDeletingAllSnapshots260(
+I
+!sonar.python.coverage.reportPaths"
+ coverage-reports/*coverage-*.xml(
+$
+sonar.auth.github.enabledfalse(
+6
+$sonar.javascript.jQueryObjectAliases
+$
+ jQuery(
+9
+(sonaranalyzer-vbnet.nuget.packageVersion7.15.0.8572(
+!
+sonar.go.file.suffixes
+.go(
+,
+sonar.auth.saml.applicationId	sonarqube(
+B
+9sonar.dbcleaner.weeksBeforeKeepingOnlyAnalysesWithVersion104(
+(
+sonar.php.exclusions
+**/vendor/**(
+*
+sonar.vbnet.roslyn.ignoreIssuesfalse(
+"
+sonar.flex.file.suffixes
+as(
+5
+sonar.auth.github.apiUrlhttps://api.github.com/(
+#
+sonar.ruby.file.suffixes
+.rb(
+.
+$sonar.auth.github.allowUsersToSignUptrue(
+C
+sonar.python.xunit.reportPath xunit-reports/xunit-result-*.xml(
 s
 sonar.javascript.globalsU
 angular
@@ -96,79 +200,70 @@ OpenLayers
 casper(
 >
 6sonar.dbcleaner.hoursBeforeKeepingOnlyOneSnapshotByDay24(
- 
-sonar.telemetry.enabletrue(
-0
- sonar.css.embedded.file.suffixes
-html,xhtml(
 M
 sonar.javascript.exclusions,
 **/node_modules/**
 **/bower_components/**(
- 
-sonar.css.file.suffixescss(
-%
-sonar.java.failOnExceptionfalse(
-0
-%sonar.organizations.createPersonalOrgfalse(
-D
-sonar.telemetry.url+https://telemetry.sonarsource.com/sonarqube(
-.
-#sonar.organizations.anyoneCanCreatefalse(
-(
-sonar.dbcleaner.cleanDirectorytrue(
-2
-'sonar.onboardingTutorial.showToNewUsersfalse(
-J
-sonar.jacoco.reportPaths,
-target/jacoco.exec
- target/jacoco-it.exec(
-4
-sonar.technicalDebt.ratingGrid0.05,0.1,0.2,0.5(
-"
-sonar.cpd.cross_projectfalse(
-+
-#sonar.technicalDebt.developmentCost30(
+1
+sonar.auth.github.webUrlhttps://github.com/(
+B
+#sonaranalyzer-vbnet.nuget.packageIdSonarAnalyzer.VisualBasic(
 
 
 email.fromnoreply@nowhere(
-"
-sonar.lf.enableGravatarfalse(
-€
-sonar.preview.excludePlugins^
-
-devcockpit
-	pdfreport
-
-governance
-ldap
-authaad
-
-authgithub
-authbitbucket
-googleanalytics(
+2
+!sonaranalyzer-vbnet.pluginVersion7.15.0.8572(
++
+ sonar.internal.analysis.failFastfalse(
 >
 7sonar.dbcleaner.weeksBeforeKeepingOnlyOneSnapshotByWeek4(
+=
+sonaranalyzer-vbnet.analyzerIdSonarAnalyzer.VisualBasic(
+
+email.prefix[SONARQUBE](
 '
-sonar.leak.periodprevious_version(
+sonar.cs.roslyn.ignoreIssuesfalse(
+&
+sonaranalyzer-cs.pluginKeycsharp(
+&
+sonar.auth.saml.providerNameSAML(
+?
+sonar.ruby.coverage.reportPaths
+coverage/.resultset.json(
+F
+#sonaranalyzer-cs.staticResourceNameSonarAnalyzer-8.6.1.17183.zip(
+*
+sonar.findbugs.confidenceLevelmedium(
+:
+ sonaranalyzer-cs.nuget.packageIdSonarAnalyzer.CSharp(
+'
+sonar.authenticator.downcasefalse(
+5
+sonaranalyzer-cs.analyzerIdSonarAnalyzer.CSharp(
+-
+"sonar.findbugs.allowuncompiledcodefalse(
+.
+#sonar.organizations.anyoneCanCreatefalse(
+4
+sonar.technicalDebt.ratingGrid0.05,0.1,0.2,0.5(
+"
+sonar.lf.enableGravatarfalse(
+/
+sonaranalyzer-cs.pluginVersion8.6.1.17183(
 5
 sonar.javascript.file.suffixes
 .js
 .jsx
 .vue(
-
-email.prefix[SONARQUBE](
 +
-sonar.java.file.suffixes
-.java
-.jav(
-8
-/sonar.dbcleaner.weeksBeforeDeletingAllSnapshots260(
-+
- sonar.java.collectAnalysisErrorsfalse(
+ sonar.vbnet.analyzeGeneratedCodefalse(
+(
+sonaranalyzer-vbnet.pluginKeyvbnet(
 S
 sonar.updatecenter.url7https://update.sonarsource.org/update-center.properties(
-%
-sonar.core.idAWPJmxkrSp4w3Eb9fJeJ
+"
+sonar.findbugs.timeout600000(
+.
+sonar.core.idBF41A1F2-AXQjDMC5ai_BF8caLuUE
 0
-sonar.core.startTime2019-04-02T13:51:42+0900
+sonar.core.startTime2020-09-01T13:01:27+0900

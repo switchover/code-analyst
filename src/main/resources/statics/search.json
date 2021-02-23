@@ -1,0 +1,233 @@
+{
+  "profiles": [
+    {
+      "key": "AXRH3wgCAhLXeJN1dxS4",
+      "name": "RedCA Way for SonarC#",
+      "language": "cs",
+      "languageName": "C#",
+      "isInherited": false,
+      "isDefault": true,
+      "activeRuleCount": 155,
+      "activeDeprecatedRuleCount": 0,
+      "rulesUpdatedAt": "2020-09-01T04:13:53+0000",
+      "lastUsed": "2020-09-03T14:09:41+0900",
+      "userUpdatedAt": "2020-09-01T13:13:53+0900",
+      "organization": "default-organization",
+      "isBuiltIn": false,
+      "actions": {
+        "edit": true,
+        "setAsDefault": false,
+        "copy": true,
+        "associateProjects": false,
+        "delete": false
+      }
+    },
+    {
+      "key": "AXQjDQ-cai_BF8caLvsh",
+      "name": "Sonar way",
+      "language": "css",
+      "languageName": "CSS",
+      "isInherited": false,
+      "isDefault": true,
+      "activeRuleCount": 23,
+      "activeDeprecatedRuleCount": 0,
+      "rulesUpdatedAt": "2020-08-25T00:52:22+0000",
+      "organization": "default-organization",
+      "isBuiltIn": true,
+      "actions": {
+        "edit": false,
+        "setAsDefault": false,
+        "copy": true,
+        "associateProjects": false,
+        "delete": false
+      }
+    },
+    {
+      "key": "AXQyuYmthzVTrCiH1EHi",
+      "name": "RedCA Way for SonarGo",
+      "language": "go",
+      "languageName": "Go",
+      "isInherited": false,
+      "isDefault": true,
+      "activeRuleCount": 17,
+      "activeDeprecatedRuleCount": 0,
+      "rulesUpdatedAt": "2020-08-28T01:44:23+0000",
+      "userUpdatedAt": "2020-08-28T10:44:23+0900",
+      "organization": "default-organization",
+      "isBuiltIn": false,
+      "actions": {
+        "edit": true,
+        "setAsDefault": false,
+        "copy": true,
+        "associateProjects": false,
+        "delete": false
+      }
+    },
+    {
+      "key": "AXQvgbsEcvFlxZDP-lAC",
+      "name": "RedCA Way for SonarJava",
+      "language": "java",
+      "languageName": "Java",
+      "isInherited": false,
+      "isDefault": true,
+      "activeRuleCount": 243,
+      "activeDeprecatedRuleCount": 0,
+      "rulesUpdatedAt": "2020-08-27T10:42:59+0000",
+      "userUpdatedAt": "2020-08-27T19:42:59+0900",
+      "organization": "default-organization",
+      "isBuiltIn": false,
+      "actions": {
+        "edit": true,
+        "setAsDefault": false,
+        "copy": true,
+        "associateProjects": false,
+        "delete": false
+      }
+    },
+    {
+      "key": "AXRH1ytGAhLXeJN1dxQE",
+      "name": "RedCA Way for SonarJS",
+      "language": "js",
+      "languageName": "JavaScript",
+      "isInherited": false,
+      "isDefault": true,
+      "activeRuleCount": 89,
+      "activeDeprecatedRuleCount": 0,
+      "rulesUpdatedAt": "2020-09-01T04:05:17+0000",
+      "userUpdatedAt": "2020-09-01T13:05:17+0900",
+      "organization": "default-organization",
+      "isBuiltIn": false,
+      "actions": {
+        "edit": true,
+        "setAsDefault": false,
+        "copy": true,
+        "associateProjects": false,
+        "delete": false
+      }
+    },
+    {
+      "key": "AXQjDRDCai_BF8caLvt2",
+      "name": "Sonar way",
+      "language": "jsp",
+      "languageName": "JSP",
+      "isInherited": false,
+      "isDefault": true,
+      "activeRuleCount": 0,
+      "activeDeprecatedRuleCount": 0,
+      "rulesUpdatedAt": "2020-08-25T00:38:12+0000",
+      "organization": "default-organization",
+      "isBuiltIn": true,
+      "actions": {
+        "edit": false,
+        "setAsDefault": false,
+        "copy": true,
+        "associateProjects": false,
+        "delete": false
+      }
+    },
+    {
+      "key": "AXQjDRDcai_BF8caLvuX",
+      "name": "Sonar way",
+      "language": "kotlin",
+      "languageName": "Kotlin",
+      "isInherited": false,
+      "isDefault": true,
+      "activeRuleCount": 31,
+      "activeDeprecatedRuleCount": 0,
+      "rulesUpdatedAt": "2020-08-25T00:38:12+0000",
+      "organization": "default-organization",
+      "isBuiltIn": true,
+      "actions": {
+        "edit": false,
+        "setAsDefault": false,
+        "copy": true,
+        "associateProjects": false,
+        "delete": false
+      }
+    },
+    {
+      "key": "AXSUcsLtvMPN_CJo408b",
+      "name": "RedCA Way for SonarPython",
+      "language": "py",
+      "languageName": "Python",
+      "isInherited": false,
+      "isDefault": true,
+      "activeRuleCount": 76,
+      "activeDeprecatedRuleCount": 0,
+      "rulesUpdatedAt": "2020-09-16T01:06:23+0000",
+      "userUpdatedAt": "2020-09-16T10:06:23+0900",
+      "organization": "default-organization",
+      "isBuiltIn": false,
+      "actions": {
+        "edit": true,
+        "setAsDefault": false,
+        "copy": true,
+        "associateProjects": false,
+        "delete": false
+      }
+    },
+    {
+      "key": "AXQjDRBGai_BF8caLvtX",
+      "name": "Sonar way",
+      "language": "scala",
+      "languageName": "Scala",
+      "isInherited": false,
+      "isDefault": true,
+      "activeRuleCount": 29,
+      "activeDeprecatedRuleCount": 0,
+      "rulesUpdatedAt": "2020-08-25T00:38:12+0000",
+      "organization": "default-organization",
+      "isBuiltIn": true,
+      "actions": {
+        "edit": false,
+        "setAsDefault": false,
+        "copy": true,
+        "associateProjects": false,
+        "delete": false
+      }
+    },
+    {
+      "key": "AXQjDRwUai_BF8caLwal",
+      "name": "Sonar way recommended",
+      "language": "ts",
+      "languageName": "TypeScript",
+      "isInherited": false,
+      "isDefault": true,
+      "activeRuleCount": 134,
+      "activeDeprecatedRuleCount": 0,
+      "rulesUpdatedAt": "2020-08-25T00:52:26+0000",
+      "organization": "default-organization",
+      "isBuiltIn": true,
+      "actions": {
+        "edit": false,
+        "setAsDefault": false,
+        "copy": true,
+        "associateProjects": false,
+        "delete": false
+      }
+    },
+    {
+      "key": "AXQjDReQai_BF8caLwNQ",
+      "name": "Sonar way",
+      "language": "web",
+      "languageName": "HTML",
+      "isInherited": false,
+      "isDefault": true,
+      "activeRuleCount": 28,
+      "activeDeprecatedRuleCount": 0,
+      "rulesUpdatedAt": "2020-08-25T00:52:25+0000",
+      "organization": "default-organization",
+      "isBuiltIn": true,
+      "actions": {
+        "edit": false,
+        "setAsDefault": false,
+        "copy": true,
+        "associateProjects": false,
+        "delete": false
+      }
+    }
+  ],
+  "actions": {
+    "create": true
+  }
+}

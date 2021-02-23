@@ -101,6 +101,22 @@ public class CliParser {
 		return parsedValue.getJavaVersion();
 	}
 
+	public String getJavaVersionWithoutDot() {
+	    if (parsedValue.getJavaVersion().contains(".")) {
+	        return parsedValue.getJavaVersion().replace("1.", "");
+        } else {
+	        return parsedValue.getJavaVersion();
+        }
+    }
+
+    public String getJavaVersionWithDot() {
+        if (parsedValue.getJavaVersion().contains(".")) {
+            return parsedValue.getJavaVersion();
+        } else {
+            return "1." + parsedValue.getJavaVersion();
+        }
+    }
+
 	public String getRuleSetFileForPMD() {
 		return parsedValue.getRuleSetFileForPMD();
 	}
@@ -188,4 +204,12 @@ public class CliParser {
 	public int getMinimumTokens() {
 		return parsedValue.getMinimumTokens();
 	}
+
+    public void setSrc(String sourceOption) {
+	    parsedValue.setSrc(sourceOption);
+    }
+
+    public void setBinary(String binaryOption) {
+	    parsedValue.setBinary(binaryOption);
+    }
 }

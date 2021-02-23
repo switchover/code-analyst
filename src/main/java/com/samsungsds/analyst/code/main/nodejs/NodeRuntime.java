@@ -32,6 +32,7 @@ import org.openqa.selenium.os.ExecutableFinder;
 import org.sonar.api.utils.ZipUtils;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -118,9 +119,9 @@ public class NodeRuntime {
             Process proc = builder.start();
 
             int errCode = proc.waitFor();
+            StringWriter writer = new StringWriter();
             if (errCode == 0) {
-                StringWriter writer = new StringWriter();
-                IOUtils.copy(proc.getInputStream(), writer);
+                IOUtils.copy(proc.getInputStream(), writer, Charset.defaultCharset());
                 String versionString = writer.toString();
 
                 Matcher matcher = NODE_VERSION_PATTERN.matcher(versionString);
@@ -132,8 +133,7 @@ public class NodeRuntime {
                     throw new NodeRuntimeException("Node version parsing error : " + versionString);
                 }
             } else {
-                StringWriter writer = new StringWriter();
-                IOUtils.copy(proc.getErrorStream(), writer);
+                IOUtils.copy(proc.getErrorStream(), writer, Charset.defaultCharset());
 
                 throw new NodeRuntimeException(writer.toString());
             }
@@ -165,7 +165,11 @@ public class NodeRuntime {
                     saveArchiveFile(fin, dir);
                 }
 
-                return dir + File.separator + NODE_PATH_FOR_MACOS;
+                String path = dir + File.separator + NODE_PATH_FOR_MACOS;
+                File nodeExecute = new File(path);
+                nodeExecute.setExecutable(true);
+
+                return path;
             } else if (IS_LINUX) {
                 File zipFile = IOAndFileUtils.saveResourceFile("/statics/nodejs/node-v10.15.3-linux-x64.tar.xz", "node", ".tar.gz");
 
@@ -175,7 +179,11 @@ public class NodeRuntime {
                     saveArchiveFile(fin, dir);
                 }
 
-                return dir + File.separator + NODE_PATH_FOR_LINUX;
+                String path = dir + File.separator + NODE_PATH_FOR_LINUX;
+                File nodeExecute = new File(path);
+                nodeExecute.setExecutable(true);
+
+                return path;
             } else {
                 throw new NodeRuntimeException("Current OS not supported...");
             }

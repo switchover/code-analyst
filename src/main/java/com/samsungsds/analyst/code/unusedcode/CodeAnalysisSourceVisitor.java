@@ -17,7 +17,6 @@ package com.samsungsds.analyst.code.unusedcode;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 import  org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,22 +38,22 @@ import com.samsungsds.analyst.code.unusedcode.type.CAMethod;
 import com.samsungsds.analyst.code.util.TypeUtil;
 
 public class CodeAnalysisSourceVisitor extends VoidVisitorAdapter<Void> {
-	
+
 	private static final Logger LOGGER = LogManager.getLogger(CodeAnalysisSourceVisitor.class);
-	
+
 	VisitResult result;
-	
+
 	String className;
 	String packageName;
-	
-	List<String> importListWithClassName = new ArrayList<String>();
-	List<String> importListWithAsterisk = new ArrayList<String>();
-	
-	
+
+	List<String> importListWithClassName = new ArrayList<>();
+	List<String> importListWithAsterisk = new ArrayList<>();
+
+
 	public CodeAnalysisSourceVisitor(VisitResult result) {
 		this.result = result;
 	}
-	
+
 	@Override
 	public void visit(CompilationUnit n, Void arg) {
 //		LOGGER.debug(String.format("visit CompilationUnit %s", n.getPackageDeclaration().get().getNameAsString()));
@@ -63,18 +62,18 @@ public class CodeAnalysisSourceVisitor extends VoidVisitorAdapter<Void> {
 		} else {
 			this.packageName = "";
 		}
-		
+
 		this.className = this.packageName;
 		super.visit(n, arg);
 	}
-	
+
 	@Override
 	public void visit(ImportDeclaration n, Void arg) {
 //		LOGGER.debug(String.format("visit ImportDeclaration|| %s %s", n.getNameAsString(), n.getTokenRange()));
 		setImportInfo(n);
 		super.visit(n, arg);
 	}
-	
+
 	private void setImportInfo(ImportDeclaration n) {
 		if(n.getTokenRange().toString().indexOf("*") > -1) {
 			importListWithAsterisk.add(n.getNameAsString());
@@ -82,11 +81,11 @@ public class CodeAnalysisSourceVisitor extends VoidVisitorAdapter<Void> {
 			importListWithClassName.add(n.getNameAsString());
 		}
 	}
-	
+
 	private String getFullClassNameBy(String type) {
 		if(TypeUtil.isPrimitiveType(type)) return type;
 		type = removeGeneric(type);
-		
+
 		String fullClassName = "java.lang."+type;
 		for (String expectedClassName : importListWithClassName) {
 			String name = expectedClassName.substring(expectedClassName.lastIndexOf(".")+1);
@@ -94,7 +93,7 @@ public class CodeAnalysisSourceVisitor extends VoidVisitorAdapter<Void> {
 				return expectedClassName;
 			}
 		}
-		
+
 		try {
 			String expectedClassName = this.packageName+"."+type;
 			Class.forName(expectedClassName);
@@ -104,7 +103,7 @@ public class CodeAnalysisSourceVisitor extends VoidVisitorAdapter<Void> {
 		} catch (NoClassDefFoundError e) {
 			//DO NOTHING
 		}
-		
+
 		for (String packageName : importListWithAsterisk) {
 			try {
 				String expectedClassName = packageName+"."+type;
@@ -114,15 +113,15 @@ public class CodeAnalysisSourceVisitor extends VoidVisitorAdapter<Void> {
 				//DO NOTHING
 			}
 		}
-		
-		
+
+
 		return fullClassName;
 	}
-	
+
 	private String removeGeneric(String typeString) {
 		return typeString.indexOf("<") > -1 ? typeString.substring(0, typeString.indexOf("<")) : typeString;
 	}
-	
+
 	@Override
 	public void visit(ClassOrInterfaceDeclaration n, Void arg) {
 //		LOGGER.debug(String.format("visit ClassOrInterfaceDeclaration %s", n.getNameAsString()));
@@ -131,7 +130,7 @@ public class CodeAnalysisSourceVisitor extends VoidVisitorAdapter<Void> {
 		}
 		super.visit(n, arg);
 	}
-	
+
 	@Override
 	public void visit(MethodDeclaration n, Void arg) {
 //		LOGGER.debug(String.format("visit Method %s %s %s %s %s %s", n.getSignature(), n.getModifiers(), n.getName(), n.getParameters(), n.getType(), n.getRange().get().begin.line));
@@ -144,11 +143,11 @@ public class CodeAnalysisSourceVisitor extends VoidVisitorAdapter<Void> {
 			parameterTypes[i] = getFullClassNameBy(n.getParameter(i).getType().toString());
 		}
 		method.setParameterTypes(parameterTypes);
-		
+
 		setMethodLineFrom(method);
 		super.visit(n, arg);
 	}
-	
+
 	private void setMethodLineFrom(CAMethod method) {
 		for (CAMethod cam : result.getTempMethods()) {
 			if(cam.equals(method)) {
@@ -157,12 +156,12 @@ public class CodeAnalysisSourceVisitor extends VoidVisitorAdapter<Void> {
 			}
 		}
 	}
-	
+
 	@Override
 	public void visit(FieldDeclaration n, Void arg) {
 //		LOGGER.debug(String.format("visit Field|| %s %s %s %s", n.getElementType(), n.getModifiers(), n.getVariables(), n.getRange().get().begin.line));
 		for (VariableDeclarator v : n.getVariables()) {
-			if(n.getModifiers().contains(Modifier.STATIC) && n.getModifiers().contains(Modifier.FINAL)) {
+			if(n.getModifiers().contains(Modifier.staticModifier()) && n.getModifiers().contains(Modifier.finalModifier())) {
 				CAConstant constant = new CAConstant();
 				constant.setTypeName(v.getType().toString());
 				constant.setType(getFullClassNameBy(v.getType().toString()));
@@ -180,10 +179,10 @@ public class CodeAnalysisSourceVisitor extends VoidVisitorAdapter<Void> {
 				setFieldLineFrom(field);
 			}
 		}
-		
+
 		super.visit(n, arg);
 	}
-	
+
 	private void setFieldLineFrom(CAField field) {
 		for (CAField caf : result.getTempFields()) {
 			if(caf.equals(field)) {
@@ -192,7 +191,7 @@ public class CodeAnalysisSourceVisitor extends VoidVisitorAdapter<Void> {
 			}
 		}
 	}
-	
+
 	private void setConstantLineFrom(CAConstant constant) {
 		for (CAConstant cac : result.getTempConstants()) {
 			if(cac.equals(constant)) {
@@ -201,37 +200,37 @@ public class CodeAnalysisSourceVisitor extends VoidVisitorAdapter<Void> {
 			}
 		}
 	}
-	
+
 	@Override
 	public void visit(NameExpr n, Void arg) {
 		//자기 클래스의 contant 필드 사용 detection
 //		LOGGER.debug(String.format("visit NameExpr|| %s %s %s", this.className, n, n.getRange().get().begin.line));
-		
+
 		CAConstant usedConstant = new CAConstant();
 		usedConstant.setClassName(this.className);
 		usedConstant.setName(n.getNameAsString());
 		result.getUsedConstants().add(usedConstant);
 		super.visit(n, arg);
 	}
-	
+
 	@Override
 	public void visit(FieldAccessExpr n, Void arg) {
 		//클래스.필드 형태의 코드는 이곳에서 detection 가능
 //		LOGGER.debug(String.format("visit FieldAccessExpr|| %s %s %s %s", this.className, n.getScope(), n.getNameAsString(), n.getRange().get().begin.line));
-		
+
 		if(!n.getScope().toString().equals("this")) {
 			CAConstant usedConstant = new CAConstant();
 			usedConstant.setClassName(getFullClassNameBy(n.getScope().toString()));
 			usedConstant.setName(n.getNameAsString());
 			result.getUsedConstants().add(usedConstant);
-			
+
 //			System.out.println(usedConstant.getClassName());
-			
+
 			CAClass usedClass = new CAClass();
 			usedClass.setName(usedConstant.getClassName());
 			result.getUsedClasses().add(usedClass);
 		}
-		
+
 		super.visit(n, arg);
 	}
 }

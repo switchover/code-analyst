@@ -21,6 +21,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
 
 import com.samsungsds.analyst.code.api.Language;
 import com.samsungsds.analyst.code.checkstyle.CheckStyleAnalysis;
@@ -32,6 +33,8 @@ import com.samsungsds.analyst.code.main.subject.TargetFile;
 import com.samsungsds.analyst.code.main.subject.TargetManager;
 import com.samsungsds.analyst.code.node_modules.eslint.ComplexityAnalysisESLintLauncher;
 import com.samsungsds.analyst.code.pmd.*;
+import com.samsungsds.analyst.code.python.radon.RadonAnalysisLauncher;
+import com.samsungsds.analyst.code.roslyn.codemetrics.CodeAnalysisLauncher;
 import com.samsungsds.analyst.code.util.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -55,9 +58,9 @@ public class App {
 
 	private Language language = Language.JAVA;
 
-	private ObserverManager observerManager = new ObserverManager();
+	private final ObserverManager observerManager = new ObserverManager();
 
-	private List<DelayWork> delayWorkList = new ArrayList<>();
+	private final List<DelayWork> delayWorkList = new ArrayList<>();
 
 	private boolean parsingError = false;
 	private String parsingErrorMessage = "";
@@ -68,6 +71,7 @@ public class App {
 		if (cli.parse()) {
 
 			LOGGER.info("Language : {}", cli.getLanguage());
+			language = cli.getLanguageType();
 
 			if (cli.getMode() == MeasurementMode.DefaultMode) {
 				LOGGER.info("Mode : {}", cli.getIndividualMode());
@@ -114,8 +118,13 @@ public class App {
 			if (cli.isDebug()) {
 				LOGGER.info("Debugging enabled");
 				LogUtils.setDebugLevel();
+				JavaLogUtils.setDebugLevel();
+                MeasuredResult.getInstance(cli.getInstanceKey()).setDebug(true);
 			} else {
 				LogUtils.unsetDebugLevel();
+				JavaLogUtils.unsetDebugLevel();
+				JavaLogUtils.setPmdLogLevelFilter(Level.SEVERE);
+                MeasuredResult.getInstance(cli.getInstanceKey()).setDebug(false);
 			}
 
 			observerManager.setUpProgressMonitor(cli);
@@ -132,21 +141,31 @@ public class App {
 				runComplexityForJava(cli);	// for only Java
 
 			} else {
+			    if (language == Language.JAVA) {
+                    TargetManager targetManager = TargetManager.getInstance(cli.getInstanceKey());
 
-				TargetManager targetManager = TargetManager.getInstance(cli.getInstanceKey());
+                    try {
+                        List<TargetFile> targetFileList = targetManager.getTargetFileList(project.getCanonicalPath(), cli.getSrc(), cli.getBinary(),
+                            MeasuredResult.getInstance(cli.getInstanceKey()));
 
-				try {
-					List<TargetFile> targetFileList = targetManager.getTargetFileList(project.getCanonicalPath(), cli.getSrc(), cli.getBinary(),
-							MeasuredResult.getInstance(cli.getInstanceKey()));
+                        if (targetManager.isDirectoriesChanged()) {
+                            cli.setSrc(targetManager.getSourceOption());
+                            cli.setBinary(targetManager.getBinaryOption());
 
-					LOGGER.info("Target File Count From Target Manager : {}", targetFileList.size());
-				} catch (IOException e) {
-					LOGGER.error("Project Directory Error : {}", cli.getProjectBaseDir());
-					return;
-				}
+                            MeasuredResult.getInstance(cli.getInstanceKey()).setChangeSourceAndBinary(cli.getSrc(), cli.getBinary());
+                        }
 
-				if (cli.getIndividualMode().isCodeSize() || cli.getIndividualMode().isDuplication() || cli.getIndividualMode().isSonarJava()
-						|| cli.getIndividualMode().isJavascript() || cli.getIndividualMode().isWebResources()) {
+                        LOGGER.info("Target File Count From Target Manager : {}", targetFileList.size());
+                    } catch (IOException e) {
+                        LOGGER.error("Project Directory Error : {}", cli.getProjectBaseDir());
+                        return;
+                    }
+                }
+
+				if (cli.getIndividualMode().isCodeSize() || cli.getIndividualMode().isDuplication()
+                        || cli.getIndividualMode().isSonarJava()
+						|| cli.getIndividualMode().isJavascript() || cli.getIndividualMode().isWebResources()
+                        || cli.getIndividualMode().isSonarCSharp() || cli.getIndividualMode().isSonarPython()) {
 					List<String> sonarAnalysisModeList = new ArrayList<>();
 					if (cli.getIndividualMode().isCodeSize()) {
 						sonarAnalysisModeList.add("Code Size");
@@ -154,6 +173,11 @@ public class App {
 					if (cli.getIndividualMode().isDuplication()) {
 						sonarAnalysisModeList.add("Duplication");
 					}
+					/*
+                    if (cli.getIndividualMode().isComplexity()) {
+                        sonarAnalysisModeList.add("Complexity");
+                    }
+					*/
 					if (cli.getIndividualMode().isSonarJava()) {
 						sonarAnalysisModeList.add("Sonar Java");
 					}
@@ -166,6 +190,12 @@ public class App {
 					if (cli.getIndividualMode().isHtml()) {
 						sonarAnalysisModeList.add("HTML");
 					}
+					if (cli.getIndividualMode().isSonarCSharp()) {
+					    sonarAnalysisModeList.add("Sonar C#");
+                    }
+                    if (cli.getIndividualMode().isSonarPython()) {
+                        sonarAnalysisModeList.add("Sonar Python");
+                    }
 					String sonarAnalysisMode = StringUtils.join(sonarAnalysisModeList, " & ");
 					LOGGER.info(sonarAnalysisMode + " Analysis start...");
 
@@ -180,10 +210,14 @@ public class App {
 					LOGGER.info("Complexity Analysis start...");
 
 					if (cli.getLanguageType() == Language.JAVA) {
-						runComplexityForJava(cli);
-					} else {
+                        runComplexityForJava(cli);
+					} else if (cli.getLanguageType() == Language.JAVASCRIPT) {
 						runComplexityForJavascript(cli);
-					}
+					} else if (cli.getLanguageType() == Language.CSHARP) {
+					    runComplexityForCSharp(cli);
+                    } else {
+					    runComplexityForPython(cli);
+                    }
 				}
 
 				if (cli.getIndividualMode().isPmd()) {
@@ -256,7 +290,13 @@ public class App {
 	}
 
 	private void runSonarAnalysis(CliParser cli) {
-		AppForSonarAnalysis delegator = new AppForSonarAnalysis(cli, observerManager);
+		AppForSonarAnalysis delegator = null;
+
+		if (cli.getLanguageType() == Language.CSHARP) {
+            delegator = new AppForSonarAnalysisForCSharp(cli, observerManager);
+        } else {
+            delegator = new AppForSonarAnalysis(cli, observerManager);
+        }
 
 		delayWorkList.add(delegator);	// clean up
 
@@ -266,6 +306,16 @@ public class App {
 	private void runPmdCpd(CliParser cli) {
 		PmdCpd cpd = new PmdCpdLauncher();
 
+        if (language == Language.CSHARP) {
+            cpd.addOption("--language", "cs");
+        } else if (language == Language.JAVASCRIPT) {
+            cpd.addOption("--language", "ecmascript");
+        } else if (language == Language.PYTHON) {
+            cpd.addOption("--language", "python");
+        } else {
+            // default : --language java
+        }
+
 		cpd.addOption("--encoding", cli.getEncoding());
 		cpd.addOption("--format", "csv");
 		cpd.addOption("-failOnViolation", "false");
@@ -274,6 +324,9 @@ public class App {
 
 		String dirs = FindFileUtils.getMultiDirectoriesWithComma(cli.getProjectBaseDir(), cli.getSrc());
 		cpd.addOption("--files", dirs);
+
+        cpd.addOption("--skip-lexical-errors", "");
+        cpd.addOption("--ignore-annotations", "");
 
 		cpd.run(cli.getInstanceKey());
 	}
@@ -305,7 +358,7 @@ public class App {
 		}
 
 		pmdComplexity.addOption("-encoding", cli.getEncoding());
-		pmdComplexity.addOption("-version", cli.getJavaVersion());
+		pmdComplexity.addOption("-version", cli.getJavaVersionWithoutDot());
 		pmdComplexity.addOption("-language", "java");
 
 		pmdComplexity.run(cli.getInstanceKey());
@@ -356,6 +409,28 @@ public class App {
 		observerManager.notifyObservers(ProgressEvent.COMPLEXITY_COMPLETE);
 	}
 
+    private void runComplexityForCSharp(CliParser cli) {
+        ComplexityAnalysis codeAnalysis = new CodeAnalysisLauncher();
+
+        codeAnalysis.addOption("-dir", cli.getProjectBaseDir());
+
+        codeAnalysis.run(cli.getInstanceKey());
+
+        observerManager.notifyObservers(ProgressEvent.COMPLEXITY_COMPLETE);
+    }
+
+    private void runComplexityForPython(CliParser cli) {
+        ComplexityAnalysis radonAnalysis = new RadonAnalysisLauncher();
+
+        radonAnalysis.addOption("path", cli.getProjectBaseDir());
+        radonAnalysis.addOption("exclude", cli.getExcludes());
+        radonAnalysis.addOption("src", cli.getSrc());
+
+        radonAnalysis.run(cli.getInstanceKey());
+
+        observerManager.notifyObservers(ProgressEvent.COMPLEXITY_COMPLETE);
+    }
+
 	private void runPmd(CliParser cli) {
 		PmdAnalysis pmdViolation = new PmdAnalysisLauncher();
 
@@ -374,7 +449,7 @@ public class App {
 		}
 
 		pmdViolation.addOption("-encoding", cli.getEncoding());
-		pmdViolation.addOption("-version", cli.getJavaVersion());
+		pmdViolation.addOption("-version", cli.getJavaVersionWithoutDot());
 		pmdViolation.addOption("-language", "java");
 
 		if (cli.getRuleSetFileForPMD() != null && !cli.getRuleSetFileForPMD().equals("")) {
@@ -443,6 +518,8 @@ public class App {
 
 			if (isFirstRun) {
 				MeasuredResult.getInstance(cli.getInstanceKey()).setFindSecBugsRules(Version.FINDSECBUGS_DEFAULT_RULES);
+
+                isFirstRun = false;
 			}
 
 			findBugsViolation.run(cli.getInstanceKey());
@@ -491,7 +568,7 @@ public class App {
 
 	private void runUnusedCode(CliParser cli) {
 		UnusedCodeAnalysis unusedCodeViolation = new UnusedCodeAnalysisLauncher();
-		
+
 		unusedCodeViolation.setProjectBaseDir(cli.getProjectBaseDir());
 		unusedCodeViolation.setTargetBinary(cli.getBinary());
 		unusedCodeViolation.setTargetSrc(cli.getSrc());
@@ -615,11 +692,15 @@ public class App {
 				if (language.equalsIgnoreCase("java")) {
 					return Language.JAVA;
 				} else if (language.equalsIgnoreCase("javascript")) {
-					return Language.JAVASCRIPT;
+                    return Language.JAVASCRIPT;
+                } else if (language.equalsIgnoreCase("c#") || language.equalsIgnoreCase("csharp")) {
+                    return Language.CSHARP;
+                } else if (language.equalsIgnoreCase("python")) {
+				    return Language.PYTHON;
 				} else {
-					System.out.println("Error in 'language' option. ('Java' or 'JavaScript')");
+					System.out.println("Error in 'language' option. ('Java', 'JavaScript', 'C#' or 'Python')");
 					System.out.println("usage : java -jar " + Version.APPLICATION_JAR);
-					System.out.println("\t -l,--language <arg> ...	specify the language to analyze. ('Java' or 'JavaScript', default : \"Java\")");
+					System.out.println("\t -l,--language <arg> ...	specify the language to analyze. ('Java', 'JavaScript', 'C#' or 'Python', default : \"Java\")");
 					System.exit(-1);
 				}
 			}

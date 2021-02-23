@@ -1,0 +1,17 @@
+		{
+			"key": "csharp",
+			"name": "C# Code Quality and Security",
+			"description": "Code Analyzer for C#",
+			"version": "8.6.1 (build 17183)",
+			"license": "GNU LGPL 3",
+			"organizationName": "SonarSource",
+			"organizationUrl": "http://www.sonarsource.com",
+			"editionBundled": false,
+			"homepageUrl": "http://redirect.sonarsource.com/plugins/csharp.html",
+			"issueTrackerUrl": "https://github.com/SonarSource/sonar-dotnet/issues",
+			"implementationBuild": "e9f4299031df68d8c4be6ba670fd4c0395eebf76",
+			"updatedAt": 1598316730977,
+			"filename": "sonar-csharp-plugin-8.6.1.17183.jar",
+			"sonarLintSupported": false,
+			"hash": "885374536d1df7ea1a355ab41be74ff8"
+		}

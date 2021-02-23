@@ -30,6 +30,8 @@ import java.io.UncheckedIOException;
 public class CliParseProcessorForJavaScript extends AbstractCliParseProcessor {
     private static final Logger LOGGER = LogManager.getLogger(CliParseProcessorForJavaScript.class);
 
+    private static final String DEFAULT_EXCLUSIONS = "**/node_modules/**";
+
     @Override
     public String getDefaultSrcOption() {
         return ".";
@@ -42,7 +44,7 @@ public class CliParseProcessorForJavaScript extends AbstractCliParseProcessor {
 
     @Override
     public void setOptions(CliParser cliParser, Options options) {
-        options.addOption("l", "language", true, "specify the language to analyze. ('Java' or 'JavaScript', default : \"Java\")");
+        options.addOption("l", "language", true, "specify the language to analyze. ('Java', 'JavaScript', 'C#' or 'Python', default : \"Java\")");
 
         options.addOption("h", "help", false, "show help.");
         options.addOption("p", "project", true, "specify project base directory. (default: \".\")");
@@ -64,7 +66,8 @@ public class CliParseProcessorForJavaScript extends AbstractCliParseProcessor {
 
         options.addOption("include", true, "specify include pattern(Ant-style) with comma separated. (e.g.: app/**/*.js)");
         options.addOption("exclude", true, "specify exclude pattern(Ant-style) with comma separated. (e.g.: tests/**,tests-*/**,*-tests/**)" +
-                "\n※ If 'include' or 'exclude' option starts with '@' and has file name, the option value is read from the file");
+                "\n※ If 'include' or 'exclude' option starts with '@' and has file name, the option value is read from the file" +
+                "\n  - default exclusions pattern is added : " + DEFAULT_EXCLUSIONS);
 
         options.addOption("m", "mode", true, "specify analysis items with comma separated. If '-' specified in each mode, the mode is excluded. " +
                 "(code-size, duplication, complexity, sonarjs)");
@@ -77,12 +80,16 @@ public class CliParseProcessorForJavaScript extends AbstractCliParseProcessor {
         options.addOption("seperated", false, "specify seperated output mode.");
 
         options.addOption("catalog", false, "specify file catalog saving mode.");
+
+        options.addOption("duplication", true,"specify duplication detection mode. ('statement' or 'token', default : statement)");
+        options.addOption("tokens", true, "specify the minimum number of tokens when token-based duplication detection mode. (default : 100)");
     }
 
     @Override
     public void setDefaultIndividualModeAfterParsing(CliParsedValueObject parsedValue) {
         parsedValue.getIndividualMode().setLanguageType(Language.JAVASCRIPT);
 
+        // keep values : CodeSize, Duplication, Complexity + SonarJS
         parsedValue.getIndividualMode().setSonarJava(false);
         parsedValue.getIndividualMode().setPmd(false);
         parsedValue.getIndividualMode().setFindBugs(false);
@@ -92,6 +99,9 @@ public class CliParseProcessorForJavaScript extends AbstractCliParseProcessor {
         parsedValue.getIndividualMode().setDependency(false);
         parsedValue.getIndividualMode().setUnusedCode(false);
         parsedValue.getIndividualMode().setCkMetrics(false);
+        parsedValue.getIndividualMode().setCheckStyle(false);
+        parsedValue.getIndividualMode().setSonarCSharp(false);
+        parsedValue.getIndividualMode().setSonarPython(false);
     }
 
     @Override
@@ -173,6 +183,13 @@ public class CliParseProcessorForJavaScript extends AbstractCliParseProcessor {
                 parsedValue.setExcludes(FileArgumentUtil.getFileArgument(cmd.getOptionValue("exclude")));
             }
 
+            // default exclusions
+            if (parsedValue.getExcludes().equals("")) {
+                parsedValue.setExcludes(DEFAULT_EXCLUSIONS);
+            } else {
+                parsedValue.setExcludes(parsedValue.getExcludes() + "," + DEFAULT_EXCLUSIONS);
+            }
+
             if (cmd.hasOption("m")) {
                 String analysisModeValue = cmd.getOptionValue("m").replaceAll(EXCLUSION_PREFIX, "");
 
@@ -205,6 +222,10 @@ public class CliParseProcessorForJavaScript extends AbstractCliParseProcessor {
                 parsedValue.setSaveCatalog(true);
             }
 
+            if (checkDuplicationType(options, parsedValue, cmd)) {
+                return false;
+            }
+
             if (checkSourceDuplication(parsedValue)) {
                 parsedValue.setErrorMessage("Source Directories(include webapp dir.) overlapped. : " +
                         parsedValue.getSrc() + (parsedValue.getWebapp().equals("") ? "" : "," + parsedValue.getWebapp()));
@@ -230,5 +251,10 @@ public class CliParseProcessorForJavaScript extends AbstractCliParseProcessor {
             help(options);
             return false;
         }
+    }
+
+    @Override
+    public String getModeErrorMessage() {
+        return "'mode' option can only have 'code-size', 'duplication', 'complexity' and 'javascript'(sonarjs) (with or without '-')";
     }
 }

@@ -51,6 +51,8 @@ public class ReportFileReader implements Closeable {
 
 	private String instanceKey;
 
+	private DirectoryCounter directoryCounter;
+
 	public ReportFileReader(File zipFile, String instanceKey) {
 		this.zipFile = zipFile;
 		this.instanceKey = instanceKey;
@@ -64,9 +66,11 @@ public class ReportFileReader implements Closeable {
 		Metadata metadata = reader.readMetadata();
 		int rootComponentRef = metadata.getRootComponentRef();
 
-		Component project = reader.readComponent(rootComponentRef);
+        Component project = reader.readComponent(rootComponentRef);
 
-		readComponent(project);
+        directoryCounter = new DirectoryCounter(MeasuredResult.getInstance(instanceKey));
+
+		readComponent(project, "");
 
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("--------------------------------------------------------------------------------");
@@ -75,23 +79,28 @@ public class ReportFileReader implements Closeable {
 		}
 	}
 
-	protected void readComponent(Component component) {
-		LOGGER.debug("Component : {}", component.getPath());
+	protected void readComponent(Component component, String currentModuleName) {
+	    LOGGER.debug("Component[{}] : {}, {}, {}, {}", component.getRef(), component.getType(), component.getName(), component.getProjectRelativePath(), component.getChildRefList());
 
 		MeasuredResult instance = MeasuredResult.getInstance(instanceKey);
 
-		if (component.getType().equals(ComponentType.DIRECTORY)) {
-			if (instance.getIndividualMode().isCodeSize()) {
-				instance.addDirectories(1);
-			}
-		} else if (component.getType().equals(ComponentType.FILE)) {
+		// 더이상 ComponentType.MODULE, ComponentType.DIRECTORY는 제공되지 않음
+        if (component.getType() == ComponentType.FILE) {
 
-			instance.addFilePathList(component.getPath());
+			instance.addFilePathList(currentModuleName, component.getProjectRelativePath());
+
+			// SonarQube 7.7부터 Directories 측정을 제공하지 않기 때문에 별도로 측정
+            // 다만, 소스가 있는 디렉토리 개수만 계산함
+            if (instance.getIndividualMode().isCodeSize()) {
+			    directoryCounter.processDirectory(component.getProjectRelativePath());
+            }
 
 			// js의 경우 *.js, *.jsx, *.vue 파일 분석이 되나, language는 "js"만 리턴됨
 			if ((instance.getLanguageType() == Language.JAVA && "java".equals(component.getLanguage()))
 					|| (instance.getLanguageType() == Language.JAVA && instance.getIndividualMode().isJavascript() && "js".equals(component.getLanguage()))
-					|| (instance.getLanguageType() == Language.JAVASCRIPT && "js".equals(component.getLanguage()))) {
+					|| (instance.getLanguageType() == Language.JAVASCRIPT && "js".equals(component.getLanguage()))
+                    || (instance.getLanguageType() == Language.CSHARP && "cs".equals(component.getLanguage()))
+                    || (instance.getLanguageType() == Language.PYTHON && "py".equals(component.getLanguage()))) {
 
 				// Code Size
 				if (instance.getIndividualMode().isCodeSize()) {
@@ -108,13 +117,15 @@ public class ReportFileReader implements Closeable {
 				// Issue
 				if ((instance.getLanguageType() == Language.JAVA && instance.getIndividualMode().isSonarJava())
 						|| (instance.getLanguageType() == Language.JAVA && instance.getIndividualMode().isJavascript())
-						|| (instance.getLanguageType() == Language.JAVASCRIPT && instance.getIndividualMode().isSonarJS())) {
+						|| (instance.getLanguageType() == Language.JAVASCRIPT && instance.getIndividualMode().isSonarJS())
+                        || (instance.getLanguageType() == Language.CSHARP && instance.getIndividualMode().isSonarCSharp())
+                        || (instance.getLanguageType() == Language.PYTHON && instance.getIndividualMode().isSonarPython())) {
 					try (CloseableIterator<ScannerReport.Issue> it = reader.readComponentIssues(component.getRef())) {
 						while (it.hasNext()) {
 							ScannerReport.Issue issue = it.next();
-							SonarIssueResult sonarJavaResult = new SonarIssueResult(component.getLanguage(), component.getPath(), issue.getRuleRepository(), issue.getRuleKey(), issue.getMsg(),	reverseSeverity(issue.getSeverityValue()),
+							SonarIssueResult sonarIssueResult = new SonarIssueResult(component.getLanguage(), component.getProjectRelativePath(), issue.getRuleRepository(), issue.getRuleKey(), issue.getMsg(), reverseSeverity(issue.getSeverityValue()),
 									issue.getTextRange().getStartLine(), issue.getTextRange().getStartOffset(), issue.getTextRange().getEndLine(), issue.getTextRange().getEndOffset());
-							instance.addSonarIssueResult(sonarJavaResult);
+							instance.addSonarIssueResult(sonarIssueResult);
 						}
 					} catch (Exception e) {
 						throw new IllegalStateException("Can't read issues for " + component, e);
@@ -126,7 +137,7 @@ public class ReportFileReader implements Closeable {
 					try (CloseableIterator<ScannerReport.Issue> it = reader.readComponentIssues(component.getRef())) {
 						while (it.hasNext()) {
 							ScannerReport.Issue issue = it.next();
-							WebResourceResult webResourceResult = new WebResourceResult(component.getLanguage(), component.getPath(), issue.getRuleRepository(), issue.getRuleKey(), issue.getMsg(), reverseSeverity(issue.getSeverityValue()), issue.getTextRange().getStartLine(), issue.getTextRange().getStartOffset(), issue.getTextRange().getEndLine(), issue.getTextRange().getEndOffset());
+							WebResourceResult webResourceResult = new WebResourceResult(component.getLanguage(), component.getProjectRelativePath(), issue.getRuleRepository(), issue.getRuleKey(), issue.getMsg(), reverseSeverity(issue.getSeverityValue()), issue.getTextRange().getStartLine(), issue.getTextRange().getStartOffset(), issue.getTextRange().getEndLine(), issue.getTextRange().getEndOffset());
 							instance.addWebResourceResult(webResourceResult);
 						}
 					} catch (Exception e) {
@@ -136,11 +147,11 @@ public class ReportFileReader implements Closeable {
 			}
 		}
 
-		for (int ref : component.getChildRefList()) {
-			Component child = reader.readComponent(ref);
+        for (int ref : component.getChildRefList()) {
+            Component child = reader.readComponent(ref);
 
-			readComponent(child);
-		}
+            readComponent(child, currentModuleName);
+        }
 	}
 
 	private void calculateCodeSize(Component component) {
@@ -175,14 +186,14 @@ public class ReportFileReader implements Closeable {
 
 				MeasuredResult.getInstance(instanceKey).addDuplicatedBlocks();
 
-				String path = component.getPath();
+				String path = component.getProjectRelativePath();
 				int startLine = dup.getOriginPosition().getStartLine();
 				int endLine = dup.getOriginPosition().getEndLine();
 
 				for (Duplicate d : dup.getDuplicateList()) {
 					String duplicatedPath = null;
 					try {
-						duplicatedPath = reader.readComponent(d.getOtherFileRef()).getPath();
+						duplicatedPath = reader.readComponent(d.getOtherFileRef()).getProjectRelativePath();
 					} catch (IllegalStateException ise) { // Unable to find report for component #...
 						duplicatedPath = DuplicationResult.DUPLICATED_FILE_SAME_MARK;
 					}

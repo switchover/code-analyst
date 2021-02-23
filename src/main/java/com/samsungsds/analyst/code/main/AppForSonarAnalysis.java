@@ -31,7 +31,6 @@ import com.samsungsds.analyst.code.util.IOAndFileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sonar.api.CoreProperties;
-import org.sonar.api.batch.bootstrap.ProjectDefinition;
 import org.sonarsource.scanner.api.ScanProperties;
 import org.sonarsource.scanner.api.ScannerProperties;
 import org.sonarsource.scanner.api.internal.InternalProperties;
@@ -42,24 +41,50 @@ import java.nio.file.Paths;
 public class AppForSonarAnalysis implements DelayWork {
     private static final Logger LOGGER = LogManager.getLogger(AppForSonarAnalysis.class);
 
-    private static final String SONAR_VERBOSE = "sonar.verbose";
-    private static final String SONAR_TEMP = ".ca";
+    protected static final String SONAR_VERBOSE = "sonar.verbose";
+    protected static final String SONAR_TEMP = ".ca";
 
-    private CliParser cli;
-    private ObserverManager observerManager;
+    protected CliParser cli;
+    protected ObserverManager observerManager;
+    protected SurrogateSonarServer server;
 
     public AppForSonarAnalysis(CliParser cli, ObserverManager observerManager) {
         this.cli = cli;
         this.observerManager = observerManager;
     }
 
-    void runSonarAnalysis() {
-        LOGGER.info("Surrogate Sonar Server starting...");
-        SurrogateSonarServer server = new JettySurrogateSonarServer();
-        int port = server.startAndReturnPort(cli);
+    protected void runSonarAnalysis() {
+        // start server
+        int port = startServerAndGetPort();
 
-        observerManager.notifyObservers(ProgressEvent.SONAR_START_COMPLETE);
+        // setup sonar scanner
+        SonarAnalysis sonar = setupSonarScanner(port);
 
+        // process sonar rule filter
+        processSonarRuleFilter();
+
+        // Node JS runtime for JavaScript
+        settingNodeJSRuntime(sonar);
+
+        // setting Sonar Process Event Checker
+        SonarProgressEventChecker sonarProgressChecker = settingAndGetSonarProgressEventChecker();
+
+        // start sonar scanner
+        try {
+            sonar.run(cli.getInstanceKey());
+        } finally {
+            LOGGER.info("Surrogate Sonar Server stopping...");
+            server.stop();
+
+            if (sonarProgressChecker != null) {
+                sonarProgressChecker.stop();
+            }
+
+            observerManager.notifyObservers(ProgressEvent.SONAR_ALL_COMPLETE);
+        }
+    }
+
+    protected SonarAnalysis setupSonarScanner(int port) {
         LOGGER.info("Sonar Scanner starting...");
         String src = cli.getSrc();
         if (cli.getIndividualMode().isJavascript() || cli.getIndividualMode().isWebResources()) {
@@ -89,7 +114,7 @@ public class AppForSonarAnalysis implements DelayWork {
         sonar.addProperty(ScanProperties.PROJECT_SOURCE_ENCODING, cli.getEncoding());
 
         // sonar.addProperty(CoreProperties.ANALYSIS_MODE, CoreProperties.ANALYSIS_MODE_PREVIEW);
-        sonar.addProperty(CoreProperties.ANALYSIS_MODE, CoreProperties.ANALYSIS_MODE_PUBLISH);
+        // sonar.addProperty(CoreProperties.ANALYSIS_MODE, CoreProperties.ANALYSIS_MODE_PUBLISH);
 
         sonar.addProperty(CoreProperties.PROJECT_KEY_PROPERTY, "local");
 
@@ -97,12 +122,20 @@ public class AppForSonarAnalysis implements DelayWork {
 
         if (cli.getLanguageType() == Language.JAVA) {
             sonar.addProperty("sonar.java.binaries", cli.getBinary());
-            sonar.addProperty(ProjectDefinition.SOURCES_PROPERTY, src);
+            sonar.addProperty("sonar.sources", src);
             sonar.addProperty("sonar.java.source", cli.getJavaVersion());
         } else if (cli.getLanguageType() == Language.JAVASCRIPT) {
             sonar.addProperty("sonar.language", "js");
 
-            sonar.addProperty(ProjectDefinition.SOURCES_PROPERTY, src);
+            sonar.addProperty("sonar.sources", src);
+        } else if (cli.getLanguageType() == Language.CSHARP) {
+            sonar.addProperty("sonar.language", "cs");
+
+            sonar.addProperty("sonar.sources", src);
+        } else if (cli.getLanguageType() == Language.PYTHON) {
+            sonar.addProperty("sonar.language", "py");
+
+            sonar.addProperty("sonar.sources", src);
         }
 
         // BatchWSClient timeout
@@ -122,41 +155,23 @@ public class AppForSonarAnalysis implements DelayWork {
             sonar.addProperty("sonar.exclusions", MeasuredResult.getInstance(cli.getInstanceKey()).getExcludes());
         }
 
-        if (!cli.getIndividualMode().isDuplication()) {
+        if (!cli.getIndividualMode().isDuplication() || cli.isTokenBased()) {
             LOGGER.info("CPD Exclusions All files");
             sonar.addProperty("sonar.cpd.exclusions", "**/*");
         }
+        return sonar;
+    }
 
-        // process sonar rule filter
-        if (cli.getRuleSetFileForSonar() != null && !cli.getRuleSetFileForSonar().equals("")) {
-            SonarIssueFilter filter = new SonarIssueFilter();
+    protected int startServerAndGetPort() {
+        LOGGER.info("Surrogate Sonar Server starting...");
+        server = new JettySurrogateSonarServer();
+        int port = server.startAndReturnPort(cli);
 
-            MeasuredResult.getInstance(cli.getInstanceKey()).setSonarIssueFilterSet(filter.parse(cli.getRuleSetFileForSonar()));
+        observerManager.notifyObservers(ProgressEvent.SONAR_START_COMPLETE);
+        return port;
+    }
 
-            if (cli.getIndividualMode().isSonarJava()) {
-                MeasuredResult.getInstance(cli.getInstanceKey()).setSonarJavaRules(Version.SONAR_JAVA_DEFAULT_RULES - filter.getExcludedJavaRules());
-            }
-            if (cli.getIndividualMode().isJavascript()) {
-                MeasuredResult.getInstance(cli.getInstanceKey()).setSonarJSRules(Version.SONAR_JS_DEFAULT_RULES - filter.getExcludedJSRules());
-            }
-        } else {
-            if (cli.getIndividualMode().isSonarJava()) {
-                MeasuredResult.getInstance(cli.getInstanceKey()).setSonarJavaRules(Version.SONAR_JAVA_DEFAULT_RULES);
-            }
-            if (cli.getIndividualMode().isJavascript()) {
-                MeasuredResult.getInstance(cli.getInstanceKey()).setSonarJSRules(Version.SONAR_JS_DEFAULT_RULES);
-            }
-        }
-
-        // Node JS runtime
-        if (cli.getIndividualMode().isJavascript()) {
-            try {
-                sonar.addProperty("sonar.nodejs.executable", NodeRuntime.findNodeRuntimePath(cli.getInstanceKey()));
-            } catch (NodeRuntimeException ex) {
-                LOGGER.error(ex);
-            }
-        }
-
+    protected SonarProgressEventChecker settingAndGetSonarProgressEventChecker() {
         SonarProgressEventChecker sonarProgressChecker = null;
         if (observerManager.hasProgressMonitor()) {
             int fileCount = 0;
@@ -164,7 +179,18 @@ public class AppForSonarAnalysis implements DelayWork {
             if (!cli.getSrc().equals("")) {
                 String[] srcDirectories = cli.getSrc().split(FindFileUtils.COMMA_SPLITTER);
                 for (String srcDir : srcDirectories) {
-                    fileCount += IOAndFileUtils.getJavaFileCount(Paths.get(cli.getProjectBaseDir(), srcDir));
+                    if (cli.getIndividualMode().isSonarJava()) {
+                        fileCount += IOAndFileUtils.getJavaFileCount(Paths.get(cli.getProjectBaseDir(), srcDir));
+                    }
+                    if (cli.getIndividualMode().isSonarJS()) {
+                        fileCount += IOAndFileUtils.getJSFileCount(Paths.get(cli.getProjectBaseDir(), srcDir));
+                    }
+                    if (cli.getIndividualMode().isSonarCSharp()) {
+                        fileCount += IOAndFileUtils.getCSharpFileCount(Paths.get(cli.getProjectBaseDir(), srcDir));
+                    }
+                    if (cli.getIndividualMode().isSonarPython()) {
+                        fileCount += IOAndFileUtils.getPythonFileCount(Paths.get(cli.getProjectBaseDir(), srcDir));
+                    }
                 }
             }
             if (cli.getIndividualMode().isJavascript()) {
@@ -181,18 +207,50 @@ public class AppForSonarAnalysis implements DelayWork {
 
             sonarProgressChecker.start();
         }
+        return sonarProgressChecker;
+    }
 
-        try {
-            sonar.run(cli.getInstanceKey());
-        } finally {
-            LOGGER.info("Surrogate Sonar Server stopping...");
-            server.stop();
-
-            if (sonarProgressChecker != null) {
-                sonarProgressChecker.stop();
+    private void settingNodeJSRuntime(SonarAnalysis sonar) {
+        if (cli.getIndividualMode().isJavascript()) {
+            try {
+                sonar.addProperty("sonar.nodejs.executable", NodeRuntime.findNodeRuntimePath(cli.getInstanceKey()));
+            } catch (NodeRuntimeException ex) {
+                LOGGER.error(ex);
             }
+        }
+    }
 
-            observerManager.notifyObservers(ProgressEvent.SONAR_ALL_COMPLETE);
+    protected void processSonarRuleFilter() {
+        if (cli.getRuleSetFileForSonar() != null && !cli.getRuleSetFileForSonar().equals("")) {
+            SonarIssueFilter filter = new SonarIssueFilter();
+
+            MeasuredResult.getInstance(cli.getInstanceKey()).setSonarIssueFilterSet(filter.parse(cli.getRuleSetFileForSonar()));
+
+            if (cli.getIndividualMode().isSonarJava()) {
+                MeasuredResult.getInstance(cli.getInstanceKey()).setSonarJavaRules(Version.SONAR_JAVA_DEFAULT_RULES - filter.getExcludedJavaRules());
+            }
+            if (cli.getIndividualMode().isJavascript()) {
+                MeasuredResult.getInstance(cli.getInstanceKey()).setSonarJSRules(Version.SONAR_JS_DEFAULT_RULES - filter.getExcludedJSRules());
+            }
+            if (cli.getIndividualMode().isSonarCSharp()) {
+                MeasuredResult.getInstance(cli.getInstanceKey()).setSonarCSharpRules(Version.SONAR_CSHARP_DEFAULT_RULES - filter.getExcludeCSharpRules());
+            }
+            if (cli.getIndividualMode().isSonarPython()) {
+                MeasuredResult.getInstance(cli.getInstanceKey()).setSonarPythonRules(Version.SONAR_PYTHON_DEFAULT_RULES - filter.getExcludePythonRules());
+            }
+        } else {
+            if (cli.getIndividualMode().isSonarJava()) {
+                MeasuredResult.getInstance(cli.getInstanceKey()).setSonarJavaRules(Version.SONAR_JAVA_DEFAULT_RULES);
+            }
+            if (cli.getIndividualMode().isJavascript()) {
+                MeasuredResult.getInstance(cli.getInstanceKey()).setSonarJSRules(Version.SONAR_JS_DEFAULT_RULES);
+            }
+            if (cli.getIndividualMode().isSonarCSharp()) {
+                MeasuredResult.getInstance(cli.getInstanceKey()).setSonarCSharpRules(Version.SONAR_CSHARP_DEFAULT_RULES);
+            }
+            if (cli.getIndividualMode().isSonarPython()) {
+                MeasuredResult.getInstance(cli.getInstanceKey()).setSonarPythonRules(Version.SONAR_PYTHON_DEFAULT_RULES);
+            }
         }
     }
 
